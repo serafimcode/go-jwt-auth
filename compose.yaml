@@ -2,9 +2,9 @@ services:
   server:
     build:
       context: .
-      target: final
+    env_file: .env
     ports:
-      - 8000:8000
+      - $SERVER_PORT:$SERVER_PORT
     depends_on:
       - db
 #      db:
@@ -13,12 +13,13 @@ services:
     image: mongo
     restart: always
     ports:
-      - "27017:27017"
+      - $DB_PORT:$DB_PORT
+    env_file: .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$DB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$DB_PASS
     volumes:
       - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
 #    healthcheck:
 #      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
 #      interval: 10s
