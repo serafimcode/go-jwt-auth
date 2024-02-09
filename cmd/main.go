@@ -8,7 +8,9 @@ import (
 
 func main() {
 	app := bootstrap.NewApp()
+
 	env := app.Env
+
 	db := app.Mongo.Database(env.DBName)
 	fmt.Println(db)
 	defer app.CloseDbConnection()
