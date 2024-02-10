@@ -6,13 +6,18 @@ type GetTokenRequest struct {
 	Guid string `json:"guid"`
 }
 
-type RefreshTokenRequest struct {
+type GetTokensResponse struct {
+	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
 }
 
-type TokenResponse struct {
+type RefreshTokenRequest struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
+}
+
+type RefreshTokenResponse struct {
+	AccessToken string `json:"accessToken"`
 }
 
 type RefreshTokenRepository interface {
