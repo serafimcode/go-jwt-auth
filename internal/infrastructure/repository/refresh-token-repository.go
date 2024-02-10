@@ -11,11 +11,11 @@ const (
 )
 
 type refreshTokenRepository struct {
-	db         mongo.Database
+	db         *mongo.Database
 	collection string
 }
 
-func NewRefreshTokenRepository(db mongo.Database) model.RefreshTokenRepository {
+func NewRefreshTokenRepository(db *mongo.Database) model.RefreshTokenRepository {
 	return &refreshTokenRepository{
 		db: db, collection: tokensCollection,
 	}

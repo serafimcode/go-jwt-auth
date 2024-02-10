@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"jwt-auth/bootstrap"
+	"jwt-auth/internal/api/route"
+	"time"
 )
 
 func main() {
@@ -12,14 +13,13 @@ func main() {
 	env := app.Env
 
 	db := app.Mongo.Database(env.DBName)
-	fmt.Println(db)
 	defer app.CloseDbConnection()
+
+	timeout := time.Duration(env.ContextTimeout) * time.Second
 
 	g := gin.Default()
 
-	g.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "success"})
-	})
+	route.Init(env, timeout, db, g)
 
 	g.Run(":" + env.ServerPort)
 }

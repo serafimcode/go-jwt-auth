@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Init(env *bootstrap.Env, timeout time.Duration, db mongo.Database, gin *gin.Engine) {
-	router := gin.Group("/auth")
+func Init(env *bootstrap.Env, timeout time.Duration, db *mongo.Database, gin *gin.Engine) {
+	router := gin.Group("/api/auth")
 	NewRefreshTokenRouter(env, timeout, db, router)
 }

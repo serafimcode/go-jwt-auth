@@ -9,6 +9,6 @@ type RefreshTokenController struct {
 	TokenService *service.TokensService
 }
 
-func (c *RefreshTokenController) RefreshTokens(g *gin.Context) {
+func (rtc *RefreshTokenController) RefreshTokens(c *gin.Context) {
 
 }

@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-func NewRefreshTokenRouter(env *bootstrap.Env, duration time.Duration, db mongo.Database, group *gin.RouterGroup) {
+func NewRefreshTokenRouter(env *bootstrap.Env, duration time.Duration, db *mongo.Database, group *gin.RouterGroup) {
 	tr := repository.NewRefreshTokenRepository(db)
 	ts := service.TokensService{TokenRepository: &tr, Env: env, ContextTimeout: duration}
 
-	rtc := &controller.RefreshTokenController{TokenService: &ts}
 	gtc := &controller.GetTokensController{TokensService: &ts}
+	rtc := &controller.RefreshTokenController{TokenService: &ts}
 
-	group.GET("/get-tokens", rtc.RefreshTokens)
-	group.POST("/refresh", gtc.GetTokenPair)
+	group.POST("/get-tokens", gtc.GetTokens)
+	group.POST("/refresh", rtc.RefreshTokens)
 }

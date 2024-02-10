@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var jwtSigningMethod = jwt.SigningMethodES512
+var jwtSigningMethod = jwt.SigningMethodHS512
 
 type TokensService struct {
 	TokenRepository *model.RefreshTokenRepository
@@ -78,7 +78,7 @@ func (s *TokensService) createAccessToken(guid string) (string, error) {
 
 	token := jwt.NewWithClaims(jwtSigningMethod, claims)
 
-	at, err := token.SignedString(s.Env.AccessTokenSecret)
+	at, err := token.SignedString([]byte(s.Env.AccessTokenSecret))
 	if err != nil {
 		return "", fmt.Errorf("failed to sign access token: %w", err)
 	}
@@ -94,9 +94,9 @@ func (s *TokensService) createRefreshToken(guid string) (string, error) {
 		"exp": exp,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwtSigningMethod, claims)
 
-	rt, err := token.SignedString(s.Env.RefreshTokenSecret)
+	rt, err := token.SignedString([]byte(s.Env.RefreshTokenSecret))
 	if err != nil {
 		return "", fmt.Errorf("failed to sign refresh token: %w", err)
 	}

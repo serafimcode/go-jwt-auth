@@ -21,10 +21,6 @@ type Env struct {
 
 func NewEnv() *Env {
 	env := Env{}
-	//wd, err := os.Getwd()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 	viper.SetConfigFile(".env")
 
 	err := viper.ReadInConfig()
