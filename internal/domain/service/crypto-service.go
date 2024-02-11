@@ -15,7 +15,14 @@ func (s *CryptoService) HashToken(refreshToken string) (string, error) {
 	}
 
 	payload := parts[1]
-	bytes, err := bcrypt.GenerateFromPassword([]byte(payload[0:71]), 14)
+	var maxHashedLength int
+	if len(payload) < 72 {
+		maxHashedLength = len(payload)
+	} else {
+		maxHashedLength = 72
+	}
+
+	bytes, err := bcrypt.GenerateFromPassword([]byte(payload[0:maxHashedLength]), 14)
 
 	return string(bytes), err
 }

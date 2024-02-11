@@ -64,7 +64,7 @@ func (s *TokensService) CreateTokens(req model.GetTokenRequest) (*model.GetToken
 }
 
 func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*model.RefreshTokenResponse, error) {
-	accessClaims := jwt.MapClaims{}
+	accessClaims := jwt.RegisteredClaims{}
 	accessToken, err := jwt.ParseWithClaims(req.AccessToken, &accessClaims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.Env.AccessTokenSecret), nil
 	})
@@ -72,7 +72,7 @@ func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*mode
 		return nil, fmt.Errorf("failed to parse access token: %w", err)
 	}
 
-	refreshClaims := jwt.MapClaims{}
+	refreshClaims := jwt.RegisteredClaims{}
 	refreshToken, err := jwt.ParseWithClaims(req.RefreshToken, &refreshClaims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.Env.RefreshTokenSecret), nil
 	})
@@ -84,13 +84,13 @@ func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*mode
 		return nil, errors.New("invalid tokens")
 	}
 
-	refreshSub := refreshClaims["sub"]
-	accessSub := accessClaims["sub"]
+	refreshSub := refreshClaims.Subject
+	accessSub := accessClaims.Subject
 	if refreshSub != accessSub {
 		return nil, errors.New("refresh token does not match access token")
 	}
 
-	at, err := s.createAccessToken(accessSub.(string))
+	at, err := s.createAccessToken(accessSub)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +101,9 @@ func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*mode
 func (s *TokensService) createAccessToken(guid string) (string, error) {
 	exp := time.Now().Add(time.Hour * time.Duration(s.Env.AccessTokenExpiryHour))
 
-	claims := jwt.MapClaims{
-		"sub": guid,
-		"exp": exp,
+	claims := jwt.RegisteredClaims{
+		Subject:   guid,
+		ExpiresAt: jwt.NewNumericDate(exp),
 	}
 
 	token := jwt.NewWithClaims(jwtSigningMethod, claims)
@@ -119,9 +119,9 @@ func (s *TokensService) createAccessToken(guid string) (string, error) {
 func (s *TokensService) createRefreshToken(guid string) (string, error) {
 	exp := time.Now().Add(time.Hour * time.Duration(s.Env.RefreshTokenExpiryHour))
 
-	claims := jwt.MapClaims{
-		"sub": guid,
-		"exp": exp,
+	claims := jwt.RegisteredClaims{
+		Subject:   guid,
+		ExpiresAt: jwt.NewNumericDate(exp),
 	}
 
 	token := jwt.NewWithClaims(jwtSigningMethod, claims)
@@ -135,7 +135,7 @@ func (s *TokensService) createRefreshToken(guid string) (string, error) {
 }
 
 func (s *TokensService) extractGuidFromToken(refreshToken string) (string, error) {
-	refreshClaims := jwt.MapClaims{}
+	refreshClaims := jwt.RegisteredClaims{}
 
 	parsedToken, err := jwt.ParseWithClaims(refreshToken, &refreshClaims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -144,6 +144,7 @@ func (s *TokensService) extractGuidFromToken(refreshToken string) (string, error
 		return []byte(s.Env.RefreshTokenSecret), nil
 	})
 
+	/**TODO попробовать использовать jwt.Registeredclaims, проблема с временем жизни*/
 	if err != nil {
 		fmt.Println("ERROR HERE")
 		return "", err
@@ -153,5 +154,5 @@ func (s *TokensService) extractGuidFromToken(refreshToken string) (string, error
 		return "", fmt.Errorf("token invalid")
 	}
 
-	return refreshClaims["sub"].(string), nil
+	return refreshClaims.Subject, nil
 }
