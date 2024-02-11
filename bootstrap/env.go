@@ -7,7 +7,6 @@ import (
 
 type Env struct {
 	ServerPort             string `mapstructure:"SERVER_PORT"`
-	ContextTimeout         int    `mapstructure:"CONTEXT_TIMEOUT"`
 	DBHost                 string `mapstructure:"DB_HOST"`
 	DBPort                 string `mapstructure:"DB_PORT"`
 	DBUser                 string `mapstructure:"DB_USER"`

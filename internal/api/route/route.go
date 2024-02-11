@@ -4,10 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"jwt-auth/bootstrap"
-	"time"
 )
 
-func Init(env *bootstrap.Env, timeout time.Duration, db *mongo.Database, gin *gin.Engine) {
+func Init(env *bootstrap.Env, db *mongo.Database, gin *gin.Engine) {
 	router := gin.Group("/api/auth")
-	NewRefreshTokenRouter(env, timeout, db, router)
+	NewRefreshTokenRouter(env, db, router)
 }

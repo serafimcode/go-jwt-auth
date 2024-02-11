@@ -7,15 +7,14 @@ import (
 	"jwt-auth/internal/api/controller"
 	"jwt-auth/internal/domain/service"
 	"jwt-auth/internal/infrastructure/repository"
-	"time"
 )
 
-func NewRefreshTokenRouter(env *bootstrap.Env, duration time.Duration, db *mongo.Database, group *gin.RouterGroup) {
+func NewRefreshTokenRouter(env *bootstrap.Env, db *mongo.Database, group *gin.RouterGroup) {
 	tr := repository.NewRefreshTokenRepository(db)
-	ts := service.TokensService{TokenRepository: &tr, Env: env, ContextTimeout: duration}
+	ts := service.TokensService{TokenRepository: tr, Env: env}
 
 	gtc := &controller.GetTokensController{TokensService: &ts}
-	rtc := &controller.RefreshTokenController{TokenService: &ts}
+	rtc := &controller.RefreshTokenController{TokensService: &ts}
 
 	group.POST("/get-tokens", gtc.GetTokens)
 	group.POST("/refresh", rtc.RefreshTokens)

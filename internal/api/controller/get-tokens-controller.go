@@ -25,5 +25,11 @@ func (gtc *GetTokensController) GetTokens(c *gin.Context) {
 		return
 	}
 
+	err = gtc.TokensService.SaveRefreshToken(req.Guid, resp.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, resp)
 }
