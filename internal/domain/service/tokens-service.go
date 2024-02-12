@@ -18,36 +18,7 @@ type TokensService struct {
 	Env             *bootstrap.Env
 }
 
-func (s *TokensService) SaveRefreshToken(guid string, refreshToken string) error {
-	hashedToken, err := s.CryptoService.HashToken(refreshToken)
-	if err != nil {
-		return fmt.Errorf("failed to hash refresh token: %w", err)
-	}
-
-	err = s.TokenRepository.Create(context.Background(), guid, hashedToken)
-
-	if err != nil {
-		return fmt.Errorf("failed to persist refresh token: %w", err)
-	}
-
-	return nil
-}
-
-func (s *TokensService) RetrieveToken(refreshToken string) (*model.TokenEntity, error) {
-	guid, err := s.extractGuidFromToken(refreshToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract guid from refresh token: %w", err)
-	}
-
-	te, err := s.TokenRepository.GetByGuid(context.Background(), guid)
-	if err != nil {
-		return nil, fmt.Errorf("token does not exist: %w", err)
-	}
-
-	return te, nil
-}
-
-func (s *TokensService) CreateTokens(req model.GetTokenRequest) (*model.GetTokensResponse, error) {
+func (s *TokensService) CreateTokens(req model.GetTokenRequest) (*model.TokensPair, error) {
 	accessToken, err := s.createAccessToken(req.Guid)
 	if err != nil {
 		return nil, err
@@ -58,12 +29,17 @@ func (s *TokensService) CreateTokens(req model.GetTokenRequest) (*model.GetToken
 		return nil, err
 	}
 
-	return &model.GetTokensResponse{
+	err = s.saveRefreshToken(req.Guid, refreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TokensPair{
 		AccessToken: accessToken, RefreshToken: refreshToken,
 	}, nil
 }
 
-func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*model.RefreshTokenResponse, error) {
+func (s *TokensService) RefreshTokens(req model.TokensPair) (*model.TokensPair, error) {
 	accessClaims := jwt.RegisteredClaims{}
 	accessToken, err := jwt.ParseWithClaims(req.AccessToken, &accessClaims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.Env.AccessTokenSecret), nil
@@ -90,12 +66,51 @@ func (s *TokensService) RefreshAccessToken(req model.RefreshTokenRequest) (*mode
 		return nil, errors.New("refresh token does not match access token")
 	}
 
-	at, err := s.createAccessToken(accessSub)
+	tp, err := s.CreateTokens(model.GetTokenRequest{Guid: accessSub})
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.RefreshTokenResponse{AccessToken: at}, nil
+	return &model.TokensPair{AccessToken: tp.AccessToken, RefreshToken: tp.RefreshToken}, nil
+}
+
+func (s *TokensService) ExtractExpiryTime(refreshToken string) (time.Time, error) {
+	refreshTokenClaims := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(refreshToken, &refreshTokenClaims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.Env.RefreshTokenSecret), nil
+	})
+
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if !token.Valid {
+		return time.Time{}, fmt.Errorf("invalid Token")
+	}
+
+	return refreshTokenClaims.ExpiresAt.Time, nil
+}
+
+func (s *TokensService) saveRefreshToken(guid string, refreshToken string) error {
+	hashedToken, err := s.CryptoService.HashToken(refreshToken)
+	if err != nil {
+		return fmt.Errorf("failed to hash refresh token: %w", err)
+	}
+
+	if err != nil {
+		return fmt.Errorf("token does not exist: %w", err)
+	}
+
+	err = s.TokenRepository.UpsertToken(context.Background(), guid, hashedToken)
+
+	if err != nil {
+		return fmt.Errorf("failed to persist refresh token: %w", err)
+	}
+
+	return nil
 }
 
 func (s *TokensService) createAccessToken(guid string) (string, error) {
@@ -132,27 +147,4 @@ func (s *TokensService) createRefreshToken(guid string) (string, error) {
 	}
 
 	return rt, nil
-}
-
-func (s *TokensService) extractGuidFromToken(refreshToken string) (string, error) {
-	refreshClaims := jwt.RegisteredClaims{}
-
-	parsedToken, err := jwt.ParseWithClaims(refreshToken, &refreshClaims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(s.Env.RefreshTokenSecret), nil
-	})
-
-	/**TODO попробовать использовать jwt.Registeredclaims, проблема с временем жизни*/
-	if err != nil {
-		fmt.Println("ERROR HERE")
-		return "", err
-	}
-
-	if !parsedToken.Valid {
-		return "", fmt.Errorf("token invalid")
-	}
-
-	return refreshClaims.Subject, nil
 }

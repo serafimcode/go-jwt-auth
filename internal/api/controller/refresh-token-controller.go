@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"jwt-auth/internal/domain/model"
 	"jwt-auth/internal/domain/service"
@@ -19,17 +20,40 @@ func (rtc *RefreshTokenController) RefreshTokens(c *gin.Context) {
 		return
 	}
 
-	_, err := rtc.TokensService.RetrieveToken(req.RefreshToken)
+	rtCookie, err := c.Request.Cookie("refreshToken")
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.ErrorResponse{Message: err.Error()})
+		if errors.Is(err, http.ErrNoCookie) {
+			c.JSON(http.StatusNotFound, model.ErrorResponse{Message: "Cookie not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: "Error retrieving cookie"})
 		return
 	}
 
-	resp, err := rtc.TokensService.RefreshAccessToken(req)
+	tp := model.TokensPair{RefreshToken: rtCookie.Value, AccessToken: req.AccessToken}
+	newTokens, err := rtc.TokensService.RefreshTokens(tp)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: err.Error()})
 		return
 	}
 
+	refreshTokenExpire, err := rtc.TokensService.ExtractExpiryTime(newTokens.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     "refreshToken",
+		Value:    newTokens.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  refreshTokenExpire,
+	}
+	http.SetCookie(c.Writer, cookie)
+
+	resp := model.TokenResponse{AccessToken: newTokens.AccessToken}
 	c.JSON(http.StatusOK, resp)
 }

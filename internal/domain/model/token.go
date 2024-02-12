@@ -9,23 +9,21 @@ type GetTokenRequest struct {
 	Guid string `json:"guid"`
 }
 
-type GetTokensResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-}
-
 type RefreshTokenRequest struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-}
-
-type RefreshTokenResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
+type TokenResponse struct {
+	AccessToken string `json:"accessToken"`
+}
+
+type TokensPair struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+}
+
 type RefreshTokenRepository interface {
-	Create(c context.Context, guid string, refreshToken string) error
-	GetByGuid(c context.Context, guid string) (*TokenEntity, error)
+	UpsertToken(c context.Context, guid string, refreshToken string) error
 }
 
 type TokenEntity struct {

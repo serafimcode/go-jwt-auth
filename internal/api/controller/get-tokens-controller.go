@@ -19,17 +19,28 @@ func (gtc *GetTokensController) GetTokens(c *gin.Context) {
 		return
 	}
 
-	resp, err := gtc.TokensService.CreateTokens(req)
+	tokenPair, err := gtc.TokensService.CreateTokens(req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	err = gtc.TokensService.SaveRefreshToken(req.Guid, resp.RefreshToken)
+	refreshTokenExpire, err := gtc.TokensService.ExtractExpiryTime(tokenPair.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ErrorResponse{Message: err.Error()})
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "refreshToken",
+		Value:    tokenPair.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  refreshTokenExpire,
+	}
+	http.SetCookie(c.Writer, cookie)
+
+	resp := model.TokenResponse{AccessToken: tokenPair.AccessToken}
 	c.JSON(http.StatusOK, resp)
 }
